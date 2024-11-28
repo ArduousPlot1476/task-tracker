@@ -208,14 +208,18 @@
         let taskHistory = [];
         let currentTask = null;
 
-        // Load saved data
-        try {
-            const saved = localStorage.getItem('taskHistory');
-            if (saved) {
-                taskHistory = JSON.parse(saved);
+        function initializeData() {
+            try {
+                const saved = localStorage.getItem('taskHistory');
+                if (saved) {
+                    taskHistory = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.log('Cannot access localStorage');
+                taskHistory = [];
             }
-        } catch (e) {
-            console.log('Cannot access localStorage');
+            updateStats();
+            renderHistory();
         }
 
         function showMessage(text, type = 'success') {
@@ -229,12 +233,17 @@
         }
 
         function updateStats() {
-            const totalStarted = taskHistory.filter(entry => entry.status === 'started').length;
-            const totalCompleted = taskHistory.filter(entry => entry.status === 'completed').length;
-            const completionRate = totalStarted ? Math.round((totalCompleted / (totalStarted/2)) * 100) : 0;
+            const tasks = new Set(taskHistory.map(t => t.taskId));
+            const totalStarted = tasks.size;
+            const completedTasks = new Set(
+                taskHistory
+                    .filter(t => t.status === 'completed')
+                    .map(t => t.taskId)
+            ).size;
+            const completionRate = totalStarted ? Math.round((completedTasks / totalStarted) * 100) : 0;
 
-            document.getElementById('tasksStarted').textContent = totalStarted/2;
-            document.getElementById('tasksCompleted').textContent = totalCompleted/2;
+            document.getElementById('tasksStarted').textContent = totalStarted;
+            document.getElementById('tasksCompleted').textContent = completedTasks;
             document.getElementById('completionRate').textContent = `${completionRate}%`;
         }
 
@@ -294,7 +303,7 @@
             const tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';
             
-            taskHistory.slice(0, 50).forEach(entry => {
+            taskHistory.forEach(entry => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
@@ -308,19 +317,26 @@
 
         function clearHistory() {
             if (!confirm('Are you sure you want to clear all history? This cannot be undone.')) return;
-            
+
+            // Reset all data
             taskHistory = [];
             currentTask = null;
+
+            // Reset UI
             document.getElementById('completeBtn').disabled = true;
             document.getElementById('startBtn').disabled = false;
-            
+            document.getElementById('taskName').value = '';
+
+            // Clear storage
             try {
                 localStorage.removeItem('taskHistory');
             } catch (e) {
-                console.log('Cannot access localStorage');
+                console.log('Storage access restricted');
             }
-            
-            saveAndRender();
+
+            // Update UI
+            updateStats();
+            renderHistory();
             showMessage('History cleared successfully');
         }
 
@@ -339,9 +355,9 @@
             const blob = new Blob([jsonString], { type: 'application/json' });
 
             if (isInIframe) {
-                showMessage('Right-click and choose "Save As" to download your history');
                 const url = URL.createObjectURL(blob);
                 window.open(url);
+                showMessage('Right-click and choose "Save As" to download your history');
             } else {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -358,21 +374,21 @@
             try {
                 localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
             } catch (e) {
-                console.log('Cannot access localStorage');
+                console.log('Storage access restricted');
             }
             updateStats();
             renderHistory();
         }
 
+        // Event Listeners
         document.getElementById('taskName').addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !currentTask) {
                 startTask();
             }
         });
 
-        // Initial render
-        updateStats();
-        renderHistory();
+        // Initialize on load
+        initializeData();
     </script>
 </body>
 </html>
