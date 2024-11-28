@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
     <title>Task Progress Tracker</title>
     <style>
         body {
@@ -11,6 +12,11 @@
             padding: 20px;
             background: white;
             color: #2f3437;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         .stats-grid {
@@ -39,33 +45,40 @@
             font-weight: 600;
         }
 
-        .input-section {
+        .task-input {
             background: #f5f5f5;
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
         }
 
-        .input-group input {
+        input[type="text"] {
             width: 100%;
             padding: 10px;
+            margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
-            margin-bottom: 15px;
         }
 
         .button-group {
             display: flex;
             gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .button-group button {
+        button {
             padding: 10px 20px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .start-button {
@@ -78,20 +91,20 @@
             color: white;
         }
 
-        .history-table {
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            margin-bottom: 20px;
         }
 
-        .history-table th {
+        th {
             background: #f5f5f5;
             padding: 12px;
             text-align: left;
             font-weight: 500;
         }
 
-        .history-table td {
+        td {
             padding: 12px;
             border-bottom: 1px solid #eee;
         }
@@ -100,97 +113,120 @@
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
         }
 
-        .status-started {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-
-        .status-completed {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
+        .status-started { background: #e3f2fd; color: #1976d2; }
+        .status-completed { background: #e8f5e9; color: #2e7d32; }
 
         .management-buttons {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
             margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
         }
 
         .clear-button {
             background: #ff4444;
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
         }
 
         .save-button {
             background: #4CAF50;
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
         }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .message {
+            display: none;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
         }
     </style>
 </head>
 <body>
-    <div class="stats-grid">
-        <div class="stat-box">
-            <h3>Tasks Started</h3>
-            <p id="tasksStarted">0</p>
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <h3>Tasks Started</h3>
+                <p id="tasksStarted">0</p>
+            </div>
+            <div class="stat-box">
+                <h3>Tasks Completed</h3>
+                <p id="tasksCompleted">0</p>
+            </div>
+            <div class="stat-box">
+                <h3>Completion Rate</h3>
+                <p id="completionRate">0%</p>
+            </div>
         </div>
-        <div class="stat-box">
-            <h3>Tasks Completed</h3>
-            <p id="tasksCompleted">0</p>
-        </div>
-        <div class="stat-box">
-            <h3>Completion Rate</h3>
-            <p id="completionRate">0%</p>
-        </div>
-    </div>
 
-    <div class="input-section">
-        <div class="input-group">
+        <div class="task-input">
             <input type="text" id="taskName" placeholder="Enter task name" />
+            <div class="button-group">
+                <button class="start-button" id="startBtn" onclick="startTask()">Start Task</button>
+                <button class="complete-button" id="completeBtn" onclick="completeTask()" disabled>Complete Task</button>
+            </div>
         </div>
-        <div class="button-group">
-            <button class="start-button" onclick="startTask()" id="startBtn">Start Task</button>
-            <button class="complete-button" onclick="completeTask()" id="completeBtn" disabled>Complete Task</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Task</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+        </table>
+
+        <div class="management-buttons">
+            <button class="clear-button" onclick="clearHistory()">Clear History</button>
+            <button class="save-button" onclick="saveToFile()">Save History</button>
         </div>
-    </div>
 
-    <table class="history-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Task</th>
-                <th>Status</th>
-                <th>Duration</th>
-            </tr>
-        </thead>
-        <tbody id="historyTableBody"></tbody>
-    </table>
-
-    <div class="management-buttons">
-        <button class="clear-button" onclick="clearHistory()">Clear History</button>
-        <button class="save-button" onclick="saveToFile()">Save History</button>
+        <div id="message" class="message"></div>
     </div>
 
     <script>
-        let taskHistory = JSON.parse(localStorage.getItem('taskHistory')) || [];
+        const isInIframe = window !== window.parent;
+        let taskHistory = [];
         let currentTask = null;
+
+        // Load saved data
+        try {
+            const saved = localStorage.getItem('taskHistory');
+            if (saved) {
+                taskHistory = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.log('Cannot access localStorage');
+        }
+
+        function showMessage(text, type = 'success') {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
 
         function updateStats() {
             const totalStarted = taskHistory.filter(entry => entry.status === 'started').length;
@@ -248,7 +284,7 @@
         }
 
         function calculateDuration(start, end) {
-            const diff = Math.floor((end - start) / 1000); // seconds
+            const diff = Math.floor((end - start) / 1000);
             const hours = Math.floor(diff / 3600);
             const minutes = Math.floor((diff % 3600) / 60);
             return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -263,11 +299,7 @@
                 row.innerHTML = `
                     <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
                     <td>${entry.taskName}</td>
-                    <td>
-                        <span class="status-badge status-${entry.status}">
-                            ${entry.status}
-                        </span>
-                    </td>
+                    <td><span class="status-badge status-${entry.status}">${entry.status}</span></td>
                     <td>${entry.duration}</td>
                 `;
                 tbody.appendChild(row);
@@ -275,19 +307,25 @@
         }
 
         function clearHistory() {
-            const confirmed = confirm('Are you sure you want to clear all history? This cannot be undone.');
-            if (confirmed) {
-                taskHistory = [];
-                currentTask = null;
-                document.getElementById('completeBtn').disabled = true;
-                document.getElementById('startBtn').disabled = false;
+            if (!confirm('Are you sure you want to clear all history? This cannot be undone.')) return;
+            
+            taskHistory = [];
+            currentTask = null;
+            document.getElementById('completeBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
+            
+            try {
                 localStorage.removeItem('taskHistory');
-                saveAndRender();
+            } catch (e) {
+                console.log('Cannot access localStorage');
             }
+            
+            saveAndRender();
+            showMessage('History cleared successfully');
         }
 
         function saveToFile() {
-            const exportData = {
+            const data = {
                 exportDate: new Date().toISOString(),
                 taskHistory: taskHistory,
                 statistics: {
@@ -297,31 +335,38 @@
                 }
             };
 
-            const jsonString = JSON.stringify(exportData, null, 2);
+            const jsonString = JSON.stringify(data, null, 2);
             const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const dateStr = new Date().toISOString().split('T')[0];
-            a.download = `task-history-${dateStr}.json`;
-            a.href = url;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            if (isInIframe) {
+                showMessage('Right-click and choose "Save As" to download your history');
+                const url = URL.createObjectURL(blob);
+                window.open(url);
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `task-history-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
         }
 
         function saveAndRender() {
-            localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
+            try {
+                localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
+            } catch (e) {
+                console.log('Cannot access localStorage');
+            }
             updateStats();
             renderHistory();
         }
 
-        // Handle Enter key in input field
         document.getElementById('taskName').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                if (!currentTask) {
-                    startTask();
-                }
+            if (e.key === 'Enter' && !currentTask) {
+                startTask();
             }
         });
 
