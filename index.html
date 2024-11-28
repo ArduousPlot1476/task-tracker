@@ -13,11 +13,6 @@
             color: #2f3437;
         }
 
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -51,23 +46,13 @@
             margin-bottom: 20px;
         }
 
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
         .input-group input {
             width: 100%;
-            padding: 8px;
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
+            font-size: 16px;
+            margin-bottom: 15px;
         }
 
         .button-group {
@@ -75,18 +60,12 @@
             gap: 10px;
         }
 
-        button {
-            padding: 8px 16px;
+        .button-group button {
+            padding: 10px 20px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            font-size: 16px;
         }
 
         .start-button {
@@ -94,71 +73,33 @@
             color: white;
         }
 
-        .start-button:hover:not(:disabled) {
-            background: #2591ba;
-        }
-
         .complete-button {
             background: #4CAF50;
             color: white;
         }
 
-        .complete-button:hover:not(:disabled) {
-            background: #388E3C;
-        }
-
-        .clear-button {
-            background: #ff4444;
-            color: white;
-        }
-
-        .clear-button:hover:not(:disabled) {
-            background: #cc0000;
-        }
-
-        .save-button {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .save-button:hover:not(:disabled) {
-            background: #388E3C;
-        }
-
-        .history-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #eee;
-        }
-
-        table {
+        .history-table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
+            margin: 20px 0;
         }
 
-        th, td {
+        .history-table th {
+            background: #f5f5f5;
+            padding: 12px;
             text-align: left;
+            font-weight: 500;
+        }
+
+        .history-table td {
             padding: 12px;
             border-bottom: 1px solid #eee;
-        }
-
-        th {
-            background: #f5f5f5;
-            font-weight: 600;
         }
 
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 12px;
-            font-weight: 500;
         }
 
         .status-started {
@@ -170,52 +111,81 @@
             background: #e8f5e9;
             color: #2e7d32;
         }
+
+        .management-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .clear-button {
+            background: #ff4444;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .save-button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="stats-grid">
-            <div class="stat-box">
-                <h3>Tasks Started</h3>
-                <p id="tasksStarted">0</p>
-            </div>
-            <div class="stat-box">
-                <h3>Tasks Completed</h3>
-                <p id="tasksCompleted">0</p>
-            </div>
-            <div class="stat-box">
-                <h3>Completion Rate</h3>
-                <p id="completionRate">0%</p>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-box">
+            <h3>Tasks Started</h3>
+            <p id="tasksStarted">0</p>
         </div>
-
-        <div class="input-section">
-            <div class="input-group">
-                <label for="taskName">Task Name</label>
-                <input type="text" id="taskName" placeholder="Enter task name">
-            </div>
-            <div class="button-group">
-                <button class="start-button" onclick="startTask()" id="startBtn">Start Task</button>
-                <button class="complete-button" onclick="completeTask()" id="completeBtn" disabled>Complete Task</button>
-            </div>
+        <div class="stat-box">
+            <h3>Tasks Completed</h3>
+            <p id="tasksCompleted">0</p>
         </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Task</th>
-                    <th>Status</th>
-                    <th>Duration</th>
-                </tr>
-            </thead>
-            <tbody id="historyTableBody"></tbody>
-        </table>
-
-        <div class="history-buttons">
-            <button class="clear-button" onclick="clearHistory()">Clear History</button>
-            <button class="save-button" onclick="saveToFile()">Save History</button>
+        <div class="stat-box">
+            <h3>Completion Rate</h3>
+            <p id="completionRate">0%</p>
         </div>
+    </div>
+
+    <div class="input-section">
+        <div class="input-group">
+            <input type="text" id="taskName" placeholder="Enter task name" />
+        </div>
+        <div class="button-group">
+            <button class="start-button" onclick="startTask()" id="startBtn">Start Task</button>
+            <button class="complete-button" onclick="completeTask()" id="completeBtn" disabled>Complete Task</button>
+        </div>
+    </div>
+
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+    </table>
+
+    <div class="management-buttons">
+        <button class="clear-button" onclick="clearHistory()">Clear History</button>
+        <button class="save-button" onclick="saveToFile()">Save History</button>
     </div>
 
     <script>
@@ -225,10 +195,10 @@
         function updateStats() {
             const totalStarted = taskHistory.filter(entry => entry.status === 'started').length;
             const totalCompleted = taskHistory.filter(entry => entry.status === 'completed').length;
-            const completionRate = totalStarted ? Math.round((totalCompleted / totalStarted) * 100) : 0;
+            const completionRate = totalStarted ? Math.round((totalCompleted / (totalStarted/2)) * 100) : 0;
 
-            document.getElementById('tasksStarted').textContent = totalStarted;
-            document.getElementById('tasksCompleted').textContent = totalCompleted;
+            document.getElementById('tasksStarted').textContent = totalStarted/2;
+            document.getElementById('tasksCompleted').textContent = totalCompleted/2;
             document.getElementById('completionRate').textContent = `${completionRate}%`;
         }
 
@@ -305,36 +275,39 @@
         }
 
         function clearHistory() {
-            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+            const confirmed = confirm('Are you sure you want to clear all history? This cannot be undone.');
+            if (confirmed) {
                 taskHistory = [];
-                localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
                 currentTask = null;
                 document.getElementById('completeBtn').disabled = true;
                 document.getElementById('startBtn').disabled = false;
+                localStorage.removeItem('taskHistory');
                 saveAndRender();
             }
         }
 
         function saveToFile() {
-            const data = {
-                history: taskHistory,
-                stats: {
+            const exportData = {
+                exportDate: new Date().toISOString(),
+                taskHistory: taskHistory,
+                statistics: {
                     tasksStarted: document.getElementById('tasksStarted').textContent,
                     tasksCompleted: document.getElementById('tasksCompleted').textContent,
                     completionRate: document.getElementById('completionRate').textContent
-                },
-                exportDate: new Date().toISOString()
+                }
             };
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.download = `task-history-${dateStr}.json`;
             a.href = url;
-            a.download = `task-history-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
+            window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         function saveAndRender() {
@@ -342,10 +315,6 @@
             updateStats();
             renderHistory();
         }
-
-        // Initial render
-        updateStats();
-        renderHistory();
 
         // Handle Enter key in input field
         document.getElementById('taskName').addEventListener('keypress', function(e) {
@@ -355,6 +324,10 @@
                 }
             }
         });
+
+        // Initial render
+        updateStats();
+        renderHistory();
     </script>
 </body>
 </html>
