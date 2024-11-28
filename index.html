@@ -3,10 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
     <title>Task Progress Tracker</title>
     <style>
-        /* Previous styles remain the same until table styles */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             margin: 0;
@@ -65,7 +63,6 @@
         .button-group {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
         }
 
         button {
@@ -74,7 +71,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
 
         button:disabled {
@@ -82,11 +79,39 @@
             cursor: not-allowed;
         }
 
+        .start-button {
+            background: #2eaadc;
+            color: white;
+        }
+
+        .complete-button {
+            background: #4CAF50;
+            color: white;
+        }
+
         .table-container {
             margin-top: 20px;
             background: white;
             border-radius: 8px;
             overflow: hidden;
+        }
+
+        .selection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .selection-info label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
         }
 
         table {
@@ -113,6 +138,7 @@
         .checkbox-cell {
             width: 40px;
             text-align: center;
+            padding: 0 8px;
         }
 
         input[type="checkbox"] {
@@ -136,8 +162,9 @@
             justify-content: flex-end;
             gap: 10px;
             margin-top: 20px;
-            padding: 10px 0;
-            border-top: 1px solid #eee;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
         }
 
         .clear-button {
@@ -145,8 +172,8 @@
             color: white;
         }
 
-        .clear-button:disabled {
-            background: #ffcdd2;
+        .clear-button:hover:not(:disabled) {
+            background: #cc0000;
         }
 
         .save-button {
@@ -154,33 +181,38 @@
             color: white;
         }
 
+        .save-button:hover:not(:disabled) {
+            background: #388E3C;
+        }
+
         .message {
-            display: none;
-            padding: 10px;
-            margin: 10px 0;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
             border-radius: 4px;
-            text-align: center;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
         }
 
-        .message.success { background: #e8f5e9; color: #2e7d32; }
-        .message.error { background: #ffebee; color: #c62828; }
-
-        .selection-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-            font-size: 14px;
-            color: #666;
+        .message.show {
+            opacity: 1;
         }
 
-        .start-button { background: #2eaadc; color: white; }
-        .complete-button { background: #4CAF50; color: white; }
+        .message.success {
+            background: #4CAF50;
+        }
+
+        .message.error {
+            background: #ff4444;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Stats section remains the same -->
         <div class="stats-grid">
             <div class="stat-box">
                 <h3>Tasks Started</h3>
@@ -199,14 +231,16 @@
         <div class="task-input">
             <input type="text" id="taskName" placeholder="Enter task name" />
             <div class="button-group">
-                <button class="start-button" id="startBtn" onclick="startTask()">Start Task</button>
-                <button class="complete-button" id="completeBtn" onclick="completeTask()" disabled>Complete Task</button>
+                <button class="start-button" id="startBtn">Start Task</button>
+                <button class="complete-button" id="completeBtn" disabled>Complete Task</button>
             </div>
         </div>
 
         <div class="selection-info">
-            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" />
-            <label for="selectAll">Select All</label>
+            <label>
+                <input type="checkbox" id="selectAll" />
+                <span>Select All</span>
+            </label>
             <span id="selectedCount"></span>
         </div>
 
@@ -224,18 +258,31 @@
         </table>
 
         <div class="management-buttons">
-            <button class="clear-button" id="clearBtn" onclick="clearSelected()" disabled>Clear Selected</button>
-            <button class="save-button" onclick="saveToFile()">Save History</button>
+            <button class="clear-button" id="clearBtn" disabled>Clear Selected</button>
+            <button class="save-button" id="saveBtn">Save History</button>
         </div>
-
-        <div id="message" class="message"></div>
     </div>
+
+    <div id="message" class="message"></div>
 
     <script>
         const isInIframe = window !== window.parent;
         let taskHistory = [];
         let currentTask = null;
         let selectedTasks = new Set();
+
+        // Initialize event listeners
+        document.getElementById('startBtn').addEventListener('click', startTask);
+        document.getElementById('completeBtn').addEventListener('click', completeTask);
+        document.getElementById('selectAll').addEventListener('change', toggleSelectAll);
+        document.getElementById('clearBtn').addEventListener('click', clearSelected);
+        document.getElementById('saveBtn').addEventListener('click', saveToFile);
+        document.getElementById('taskName').addEventListener('keypress', e => {
+            if (e.key === 'Enter' && !currentTask) startTask();
+        });
+
+        // Load saved data
+        initializeData();
 
         function initializeData() {
             try {
@@ -244,21 +291,82 @@
                     taskHistory = JSON.parse(saved);
                 }
             } catch (e) {
-                console.log('Cannot access localStorage');
-                taskHistory = [];
+                console.log('Storage access restricted');
             }
             updateStats();
             renderHistory();
-            updateSelectionCount();
         }
 
-        function updateSelectionCount() {
-            const count = selectedTasks.size;
-            document.getElementById('selectedCount').textContent = 
-                count > 0 ? `${count} selected` : '';
-            document.getElementById('clearBtn').disabled = count === 0;
-            document.getElementById('selectAll').checked = 
-                count > 0 && count === taskHistory.length;
+        function updateStats() {
+            const tasks = new Set(taskHistory.map(t => t.taskId));
+            const totalStarted = tasks.size;
+            const completedTasks = new Set(
+                taskHistory
+                    .filter(t => t.status === 'completed')
+                    .map(t => t.taskId)
+            ).size;
+            const completionRate = totalStarted ? Math.round((completedTasks / totalStarted) * 100) : 0;
+
+            document.getElementById('tasksStarted').textContent = totalStarted;
+            document.getElementById('tasksCompleted').textContent = completedTasks;
+            document.getElementById('completionRate').textContent = `${completionRate}%`;
+        }
+
+        function startTask() {
+            const taskName = document.getElementById('taskName').value.trim();
+            if (!taskName) {
+                showMessage('Please enter a task name', 'error');
+                return;
+            }
+
+            currentTask = {
+                id: Date.now(),
+                name: taskName,
+                startTime: new Date().toISOString()
+            };
+
+            taskHistory.unshift({
+                timestamp: currentTask.startTime,
+                taskId: currentTask.id,
+                taskName: taskName,
+                status: 'started',
+                duration: '-'
+            });
+
+            document.getElementById('taskName').value = '';
+            document.getElementById('completeBtn').disabled = false;
+            document.getElementById('startBtn').disabled = true;
+            saveAndRender();
+            showMessage('Task started');
+        }
+
+        function completeTask() {
+            if (!currentTask) return;
+
+            const startTime = new Date(currentTask.startTime);
+            const endTime = new Date();
+            const duration = calculateDuration(startTime, endTime);
+
+            taskHistory.unshift({
+                timestamp: endTime.toISOString(),
+                taskId: currentTask.id,
+                taskName: currentTask.name,
+                status: 'completed',
+                duration: duration
+            });
+
+            currentTask = null;
+            document.getElementById('completeBtn').disabled = true;
+            document.getElementById('startBtn').disabled = false;
+            saveAndRender();
+            showMessage('Task completed');
+        }
+
+        function calculateDuration(start, end) {
+            const diff = Math.floor((end - start) / 1000);
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
         }
 
         function toggleSelectAll() {
@@ -285,20 +393,59 @@
             updateSelectionCount();
         }
 
-        function clearSelected() {
-            if (selectedTasks.size === 0) return;
-            
-            if (!confirm(`Are you sure you want to delete ${selectedTasks.size} selected tasks?`)) return;
-
-            taskHistory = taskHistory.filter(task => !selectedTasks.has(task.timestamp));
-            selectedTasks.clear();
-            
-            saveAndRender();
-            showMessage(`Deleted ${selectedTasks.size} tasks`);
-            updateSelectionCount();
+        function updateSelectionCount() {
+            const count = selectedTasks.size;
+            document.getElementById('selectedCount').textContent = 
+                count > 0 ? `${count} selected` : '';
+            document.getElementById('clearBtn').disabled = count === 0;
         }
 
-        // Previous functions remain the same, but renderHistory is updated:
+        function clearSelected() {
+            if (selectedTasks.size === 0) {
+                showMessage('No tasks selected', 'error');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete ${selectedTasks.size} selected task(s)?`)) {
+                taskHistory = taskHistory.filter(task => !selectedTasks.has(task.timestamp));
+                selectedTasks.clear();
+                saveAndRender();
+                showMessage('Selected tasks deleted');
+            }
+        }
+
+        function saveToFile() {
+            const data = {
+                exportDate: new Date().toISOString(),
+                taskHistory: taskHistory,
+                statistics: {
+                    tasksStarted: document.getElementById('tasksStarted').textContent,
+                    tasksCompleted: document.getElementById('tasksCompleted').textContent,
+                    completionRate: document.getElementById('completionRate').textContent
+                }
+            };
+
+            try {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                if (isInIframe) {
+                    window.open(url);
+                    showMessage('Right click and choose "Save As" to download');
+                } else {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `task-history-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            } catch (e) {
+                showMessage('Download failed. Try again.', 'error');
+            }
+        }
+
         function renderHistory() {
             const tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';
@@ -312,7 +459,7 @@
                     <td class="checkbox-cell">
                         <input type="checkbox" 
                                ${isSelected ? 'checked' : ''} 
-                               onchange="toggleTaskSelection('${entry.timestamp}')" />
+                               onclick="toggleTaskSelection('${entry.timestamp}')" />
                     </td>
                     <td>${new Date(entry.timestamp).toLocaleTimeString()}</td>
                     <td>${entry.taskName}</td>
@@ -323,10 +470,25 @@
             });
         }
 
-        // Rest of the previous functions remain the same
+        function saveAndRender() {
+            try {
+                localStorage.setItem('taskHistory', JSON.stringify(taskHistory));
+            } catch (e) {
+                console.log('Storage access restricted');
+            }
+            updateStats();
+            renderHistory();
+            updateSelectionCount();
+        }
 
-        // Initialize
-        initializeData();
+        function showMessage(text, type = 'success') {
+            const message = document.getElementById('message');
+            message.textContent = text;
+            message.className = `message ${type} show`;
+            setTimeout(() => {
+                message.className = 'message';
+            }, 3000);
+        }
     </script>
 </body>
 </html>
